@@ -1,0 +1,64 @@
+@startuml seq_cadastrar_sala
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Cadastrar sala e definir planta (Sprint 1)
+
+actor "Gerente do\nCinema" as GER
+participant "Tela\nCadastrar sala" as UI
+participant "SalaController" as C
+participant "Sala\n(model)" as S
+participant "Assento\n(model)" as A
+database "Banco de\ndados" as DB
+
+GER -> UI : informa nome, fileiras, assentos por fileira,\nsituação e suporte a 3D
+UI -> C : POST /salas
+C -> C : valida (nome único, 1–26 fileiras,\n1–40 assentos por fileira)
+alt dados inválidos
+  C --> UI : campos destacados com a mensagem
+else dados válidos
+  C -> DB : BEGIN TRANSACTION
+  C -> S : create(dados)
+  S -> DB : INSERT salas
+  C -> S : gerarPlanta()
+  loop para cada fileira (A, B, C...) e número
+    S -> A : create(fileira, número, tipo "padrão")
+    A -> DB : INSERT assentos
+  end
+  C -> DB : COMMIT
+  C -> DB : INSERT auditorias (ação "criar")
+  C --> UI : abre o editor da planta
+end
+
+group «include» Definir planta de assentos
+  GER -> UI : clica nas posições para marcar\nacessibilidade ou corredor
+  UI -> UI : atualiza a capacidade na tela
+  GER -> UI : salvar planta
+  UI -> C : PUT /salas/{id}/planta
+  C -> S : possuiSessoesFuturas()?
+  alt há sessões futuras
+    C --> UI : "Planta não pode ser alterada"
+  else sala sem sessões futuras
+    C -> C : ao menos 1 assento restante?
+    C -> A : update(tipo) dos assentos alterados
+    A -> DB : UPDATE assentos
+    C -> DB : INSERT auditorias (ação "alterar_planta")
+    C --> UI : "Planta salva: N assentos"
+  end
+end
+@enduml

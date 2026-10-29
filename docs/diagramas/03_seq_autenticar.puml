@@ -1,0 +1,58 @@
+@startuml seq_autenticar
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Autenticar usuário (Sprint 1)
+
+actor "Funcionário\n(Gerente, Atendente\nou Portaria)" as U
+participant "Tela de login" as UI
+participant "AuthController" as C
+participant "RateLimiter" as R
+participant "Auth\n(Laravel)" as A
+database "Banco de\ndados" as DB
+
+U -> UI : informa e-mail e senha
+UI -> C : POST /login
+C -> C : valida formato dos campos
+C -> R : tooManyAttempts(e-mail + IP, 5)?
+alt 5 tentativas no último minuto
+  R --> C : sim
+  C --> UI : "Tente novamente em N segundos"
+else dentro do limite
+  C -> A : attempt(e-mail, senha)
+  A -> DB : SELECT usuário pelo e-mail
+  DB --> A : usuário (senha com hash)
+  A -> A : compara hash bcrypt
+  alt credenciais inválidas
+    A --> C : falso
+    C -> R : hit()
+    C --> UI : "E-mail ou senha incorretos"
+  else usuário desativado
+    A --> C : verdadeiro
+    C -> A : logout()
+    C --> UI : "Usuário desativado"
+  else sucesso
+    A --> C : verdadeiro
+    C -> R : clear()
+    C -> C : regenera a sessão
+    C -> DB : INSERT auditorias (ação "login")
+    C --> UI : redireciona para o painel
+    UI --> U : menu conforme o perfil
+  end
+end
+@enduml

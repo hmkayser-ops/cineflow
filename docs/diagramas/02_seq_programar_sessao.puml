@@ -1,0 +1,87 @@
+@startuml seq_programar_sessao
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+skinparam note {
+  BackgroundColor #FFF8E6
+  BorderColor #C9A227
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Programar sessão (Sprint 1)
+
+actor "Gerente do\nCinema" as GER
+participant "Tela\nProgramar sessão" as UI
+participant "SessaoController" as C
+participant "ProgramacaoSessao\nService" as S
+participant "Filme / Sala\n(model)" as M
+participant "TabelaPreco\n(model)" as P
+participant "Sessao\n(model)" as SE
+database "Banco de\ndados" as DB
+
+GER -> UI : abre "Programar sessão"
+UI -> C : GET /sessoes/nova
+C -> M : listar filmes ativos e salas
+M -> DB : SELECT
+DB --> M : registros
+C --> UI : formulário com filmes e salas
+GER -> UI : informa filme, sala, data, horário e formato
+GER -> UI : clica em "Verificar"
+UI -> C : POST /sessoes/verificar
+C -> S : validar(filme, sala, início, formato)
+S -> S : data/hora no futuro? (FA4)
+S -> M : sala em manutenção? (FA3)\nsala suporta 3D?\nlicença cobre a data? (FA2)
+S -> S : calcularTermino(): término = início +\ntrailers + duração do filme + limpeza
+
+group «include» Verificar disponibilidade da sala
+  S -> SE : sobrepostas(sala, início, término)
+  SE -> DB : SELECT sessões da sala no intervalo
+  DB --> SE : sessões conflitantes
+  SE --> S : lista
+end
+
+alt sala livre
+  S --> C : término
+  C -> S : precoPadrao(formato, data)
+  S -> P : vigente(formato, data)
+  P --> S : valor da inteira
+  S --> C : inteira e meia (50%)
+  C --> UI : "Sala livre: 19:00 às 21:35" + preços
+  UI --> GER : mostra término e preços preenchidos
+else conflito de horário (FA1)
+  S -> S : sugerirHorarioLivre()
+  S --> C : ProgramacaoException(FA1, sugestão)
+  C --> UI : sessão conflitante + primeiro horário livre
+  UI --> GER : exibe conflito e botão "Usar 21:35"
+end
+
+GER -> UI : confirma programação (ajusta preço se quiser)
+UI -> C : POST /sessoes
+C -> C : valida campos obrigatórios (FA4)
+C -> S : programarEmLote(dados, dias, gerente)
+S -> DB : BEGIN TRANSACTION
+S -> M : Sala::lockForUpdate()
+note right of S : bloqueio da sala evita que\nduas programações simultâneas\nocupem o mesmo horário
+S -> S : validar(...) novamente
+S -> SE : create(sessão, status "programada")
+SE -> DB : INSERT sessoes
+S -> DB : INSERT sessao_assentos\n(mapa gerado a partir da planta da sala)
+S -> DB : INSERT auditorias (ação "programar")
+S -> DB : COMMIT
+S --> C : sessão criada
+C --> UI : redireciona para o detalhe da sessão
+UI --> GER : "Sessão programada. Venda liberada."
+@enduml
