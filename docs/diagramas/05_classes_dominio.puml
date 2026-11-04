@@ -1,0 +1,157 @@
+@startuml classes_dominio
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 15
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  ArrowColor #444444
+  AttributeFontSize 14
+  FontStyle bold
+}
+skinparam enum {
+  BackgroundColor #F5F4F1
+  BorderColor #555555
+  AttributeFontSize 14
+}
+hide circle
+title Diagrama de classes – domínio (implementado na Sprint 1)
+
+class Filme {
+  + id : int
+  + titulo : string
+  + titulo_original : string
+  + sinopse : text
+  + genero : string
+  + duracao_min : int
+  + classificacao : string <<L,10,12,14,16,18>>
+  + distribuidora : string
+  + licenca_inicio : date
+  + licenca_fim : date
+  + ativo : bool
+  --
+  + licencaCobre(data) : bool
+  + getDuracaoFormatada() : string
+}
+
+class Sala {
+  + id : int
+  + nome : string <<único>>
+  + fileiras : int
+  + assentos_por_fileira : int
+  + suporta_3d : bool
+  + status : StatusSala
+  + manutencao_ate : date
+  + /capacidade : int
+  --
+  + {static} letraFileira(indice) : string
+  + emManutencaoEm(data) : bool
+  + gerarPlanta() : void
+  + grade() : array
+}
+
+class Assento {
+  + id : int
+  + fileira : string
+  + numero : int
+  + tipo : TipoAssento
+  + /codigo : string
+}
+
+class Sessao {
+  + id : int
+  + inicio : datetime
+  + fim : datetime <<trailers + filme + limpeza>>
+  + formato : string <<2D, 3D>>
+  + idioma : string <<dublado, legendado>>
+  + valor_inteira : decimal
+  + valor_meia : decimal
+  + status : string <<programada, cancelada>>
+  + /descricao : string
+  --
+  + scopeProgramadas() : Builder
+  + scopeSobrepostas(salaId, inicio, fim) : Builder
+}
+
+class SessaoAssento {
+  + id : int
+  + status : StatusAssentoSessao
+  + bloqueado_ate : datetime <<Sprint 2>>
+}
+
+class TabelaPreco {
+  + id : int
+  + formato : string <<2D, 3D>>
+  + valor_inteira : decimal
+  + vigente_desde : date
+  --
+  + {static} vigente(formato, data) : TabelaPreco
+}
+
+class User {
+  + id : int
+  + name : string
+  + email : string
+  + password : string <<hash bcrypt>>
+  + perfil : Perfil
+  + ativo : bool
+  --
+  + temPerfil(...perfis) : bool
+  + isGerente() : bool
+  + getPerfilNome() : string
+}
+
+class Auditoria {
+  + id : int
+  + acao : string
+  + entidade : string
+  + entidade_id : int
+  + detalhes : json
+  + ip : string
+  + created_at : datetime
+  --
+  + {static} registrar(acao, entidade, id, detalhes) : Auditoria
+}
+
+enum Perfil {
+  gerente
+  atendente
+  portaria
+}
+enum StatusSala {
+  ativa
+  manutencao
+  inativa
+}
+enum TipoAssento {
+  padrao
+  acessivel
+  inexistente
+}
+enum StatusAssentoSessao {
+  disponivel
+  bloqueado
+  ocupado
+}
+
+Sala "1" *-- "0..*" Assento : planta >
+Sessao "0..*" --o "1" Filme : exibido em >
+Sessao "0..*" --o "1" Sala : sediada em >
+Sessao "0..*" --o "1" User : programada por >
+Sessao "1" *-- "0..*" SessaoAssento : mapa de assentos >
+SessaoAssento "0..*" --o "1" Assento : origem >
+Auditoria "0..*" --o "1" User : registra >
+
+Auditoria -[hidden]down- TabelaPreco
+Perfil -[hidden]right- StatusSala
+Perfil -[hidden]down- TipoAssento
+StatusSala -[hidden]down- StatusAssentoSessao
+SessaoAssento -[hidden]down- Perfil
+
+note bottom of Assento
+  tipo = inexistente representa corredor.
+  A capacidade da sala é o número de
+  posições que não são corredor.
+end note
+
+@enduml

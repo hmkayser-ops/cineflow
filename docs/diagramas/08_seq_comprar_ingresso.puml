@@ -1,0 +1,96 @@
+@startuml seq_comprar_ingresso
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+skinparam note {
+  BackgroundColor #FFF8E6
+  BorderColor #C9A227
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Comprar ingresso (previsto para a Sprint 2)
+
+actor "Cliente" as CLI
+participant "Tela\nCompra" as UI
+participant "CompraController" as C
+participant "CompraService" as S
+participant "SessaoAssento\n(model)" as SA
+participant "Compra / Ingresso\n(model)" as CO
+participant "Pagamento\n(model)" as PG
+participant "Gateway\nsimulado" as GW
+database "Banco de\ndados" as DB
+
+CLI -> UI : abre a sessão na programação
+UI -> C : GET /sessoes/{id}/comprar
+C -> SA : mapa de assentos da sessão
+SA -> DB : SELECT sessao_assentos
+DB --> SA : assentos com status
+C --> UI : mapa com disponíveis, bloqueados e ocupados
+CLI -> UI : seleciona os assentos
+UI -> C : POST /compras
+C -> S : iniciar(sessao, assentos, cliente)
+
+S -> DB : BEGIN TRANSACTION
+S -> SA : lockForUpdate() nos assentos escolhidos
+note right of S : o bloqueio das linhas impede que dois\nclientes comprem o mesmo assento (RNF01)
+
+alt algum assento já ocupado ou bloqueado
+  S -> DB : ROLLBACK
+  S --> C : ProgramacaoException(assento indisponível)
+  C --> UI : informa quais assentos saíram e recarrega o mapa
+else todos disponíveis
+  S -> SA : status "bloqueado", bloqueado_ate = agora + 10 min
+  SA -> DB : UPDATE sessao_assentos
+  S -> CO : create(Compra, status "aberta")
+  CO -> DB : INSERT compras
+  S -> DB : COMMIT
+  S --> C : compra aberta com o prazo
+  C --> UI : resumo da compra e contagem regressiva
+end
+
+CLI -> UI : marca quais ingressos são meia-entrada
+UI -> C : PATCH /compras/{id}
+C -> S : calcularTotal(compra, meias)
+S -> S : meia = 50% da inteira da sessão
+S --> C : total atualizado
+
+CLI -> UI : confirma o pagamento
+UI -> C : POST /compras/{id}/pagamento
+C -> S : pagar(compra, dados)
+S -> PG : create(status "pendente")
+PG -> DB : INSERT pagamentos
+S -> GW : autorizar(valor, dados)
+
+alt recusado
+  GW --> S : recusa e motivo
+  S -> PG : status "recusado"
+  S --> C : pagamento recusado
+  C --> UI : mostra o motivo; assentos seguem bloqueados até expirar
+else aprovado
+  GW --> S : autorização e transacao_id
+  S -> DB : BEGIN TRANSACTION
+  S -> PG : status "aprovado", grava transacao_id
+  S -> SA : status "ocupado"
+  S -> CO : um Ingresso por assento, com código único (RNF06)
+  CO -> DB : INSERT ingressos
+  S -> CO : Compra com status "paga"
+  S -> DB : INSERT auditorias (ação "comprar")
+  S -> DB : COMMIT
+  S --> C : ingressos emitidos
+  C --> UI : confirmação com os códigos
+  UI --> CLI : ingressos disponíveis para apresentar na entrada
+end
+@enduml

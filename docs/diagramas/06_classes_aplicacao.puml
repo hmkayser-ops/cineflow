@@ -1,0 +1,118 @@
+@startuml classes_aplicacao
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 15
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  ArrowColor #444444
+  AttributeFontSize 14
+  FontStyle bold
+  BackgroundColor<<prevista>> #E8EFF8
+  BorderColor<<prevista>> #24548F
+  BackgroundColor<<contexto>> #F2F2F0
+  BorderColor<<contexto>> #999999
+}
+hide circle
+hide <<contexto>> members
+title Diagrama de classes – camada de aplicação e classes previstas para a Sprint 2
+
+package "Implementado na Sprint 1" {
+  class ProgramacaoSessaoService <<serviço>> {
+    + calcularTermino(filme, inicio) : Carbon
+    + precoPadrao(formato, data) : array
+    + verificarDisponibilidade(sala, inicio, fim) : Collection
+    + sugerirHorarioLivre(sala, filme, de) : Carbon
+    + validar(filme, sala, inicio, formato) : Carbon
+    + programar(dados, gerente) : Sessao
+    + programarEmLote(dados, dias, gerente) : array
+    + cancelar(sessao, motivo) : void
+  }
+
+  class ProgramacaoException <<RuntimeException>> {
+    + codigo : string
+    + contexto : array
+    --
+    CONFLITO_HORARIO = FA1
+    SEM_LICENCA = FA2
+    SALA_MANUTENCAO = FA3
+    DADOS_INVALIDOS = FA4
+    SALA_SEM_3D = FA6
+    SEM_TABELA_PRECO = RN-PRECO
+  }
+
+  class VerificarPerfil <<middleware>> {
+    + handle(request, next, ...perfis) : Response
+    --
+    Confere o perfil do User em cada rota.
+  }
+}
+
+class Sessao <<contexto>>
+class SessaoAssento <<contexto>>
+
+package "Previsto para a Sprint 2" {
+  class Compra <<prevista>> {
+    + id : int
+    + cliente_nome : string
+    + cliente_email : string
+    + canal : string <<site, totem, bilheteria>>
+    + total : decimal
+    + status : string <<aberta, paga, cancelada>>
+    + created_at : datetime
+    --
+    + calcularTotal() : decimal
+    + cancelar(motivo) : void
+  }
+
+  class Ingresso <<prevista>> {
+    + id : int
+    + tipo : string <<inteira, meia>>
+    + valor : decimal
+    + codigo : string <<único, não reutilizável>>
+    + status : string <<valido, utilizado, cancelado>>
+    + validado_em : datetime
+    --
+    + gerarCodigo() : string
+    + validar() : bool
+  }
+
+  class Pagamento <<prevista>> {
+    + id : int
+    + valor : decimal
+    + status : string <<pendente, aprovado, recusado, estornado>>
+    + metodo : string
+    + transacao_id : string <<gateway>>
+    + created_at : datetime
+    --
+    + autorizar() : bool
+    + estornar() : bool
+  }
+}
+
+ProgramacaoSessaoService -[hidden]down- ProgramacaoException
+ProgramacaoException -[hidden]down- VerificarPerfil
+ProgramacaoSessaoService ..> Sessao : cria
+ProgramacaoSessaoService ..> ProgramacaoException : lança
+
+Compra "0..*" --o "1" Sessao : para a sessão >
+Ingresso "1..*" --* "1" Compra : itens >
+Pagamento "0..*" --* "1" Compra : tentativas >
+Ingresso "1" --o "1" SessaoAssento : ocupa >
+
+note bottom of ProgramacaoSessaoService
+  Regras do caso de uso "Programar sessão". A gravação ocorre em
+  transação com bloqueio da sala, para que duas programações
+  simultâneas não ocupem o mesmo horário (RNF01). Os tempos de
+  trailers e de limpeza vêm de config/cineflow.php. O serviço também
+  consulta TabelaPreco para o preço vigente e grava em Auditoria.
+end note
+
+note bottom of Pagamento
+  Cada tentativa do gateway vira um registro, então
+  uma recusa seguida de aprovação fica no histórico
+  e o estorno (RF09) é mais um registro, não a
+  sobrescrita de um campo.
+end note
+
+@enduml
