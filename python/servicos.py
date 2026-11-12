@@ -44,13 +44,39 @@ class ServicoSessao:
             raise ErroDeRegra('O preço da inteira precisa ser maior que zero.')
 
         fim = self.calcular_fim(filme, inicio)
-        if self.ha_conflito(sala.id, inicio, fim):
-            raise ErroDeRegra(f'A sala {sala.nome} já tem sessão nesse horário '
-                              f'({inicio:%H:%M} às {fim:%H:%M}).')
 
-        sessao = Sessao(0, filme.id, sala.id, inicio, fim, formato, preco_inteira, 'programada')
-        sessao.id = self.repo.salvar_sessao(sessao)
-        return sessao
+        # A verificação de conflito e a gravação acontecem na mesma transação.
+        # Só conferir antes de gravar não bastaria: entre uma coisa e outra,
+        # outro gerente poderia ocupar o mesmo horário.
+        con = self.repo.conectar()
+        try:
+            con.execute('BEGIN IMMEDIATE')
+            ocupadas = con.execute(
+                "SELECT inicio, fim FROM sessoes WHERE sala_id = ? AND status = 'programada'",
+                (sala.id,)).fetchall()
+            for linha in ocupadas:
+                outro_inicio = datetime.strptime(linha['inicio'], FORMATO)
+                outro_fim = datetime.strptime(linha['fim'], FORMATO)
+                if inicio < outro_fim and outro_inicio < fim:
+                    raise ErroDeRegra(f'A sala {sala.nome} já tem sessão nesse horário '
+                                      f'({inicio:%H:%M} às {fim:%H:%M}).')
+
+            cur = con.execute('INSERT INTO sessoes (filme_id, sala_id, inicio, fim, formato, '
+                              'preco_inteira, status) VALUES (?,?,?,?,?,?,?)',
+                              (filme.id, sala.id, inicio.strftime(FORMATO),
+                               fim.strftime(FORMATO), formato, preco_inteira, 'programada'))
+            sessao_id = cur.lastrowid
+            con.execute('INSERT INTO sessao_assentos (sessao_id, assento_id) '
+                        'SELECT ?, id FROM assentos WHERE sala_id = ?', (sessao_id, sala.id))
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+
+        return Sessao(sessao_id, filme.id, sala.id, inicio, fim, formato, preco_inteira,
+                      'programada')
 
 
 class ServicoCompra:
