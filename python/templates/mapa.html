@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block titulo %}Comprar · CineFlow{% endblock %}
+{% block conteudo %}
+<h1>{{ sessao.filme_titulo }}</h1>
+<p class="ajuda">{{ sessao.sala_nome }} · {{ sessao.inicio.strftime('%d/%m às %H:%M') }} ·
+   {{ sessao.formato }} · inteira R$ {{ '%.2f'|format(sessao.preco_inteira) }} ·
+   meia R$ {{ '%.2f'|format(sessao.preco_meia()) }}</p>
+<form method="post">
+  <div class="mapa">
+    <div class="tela">TELA</div>
+    {% for letra, lugares in fileiras.items() %}
+    <div class="fileira"><b>{{ letra }}</b>
+      {% for lugar, livre in lugares %}
+        {% if livre %}
+          <label class="lugar" onclick="this.classList.toggle('escolhido')">
+            <input type="checkbox" name="lugares" value="{{ lugar.id }}">{{ lugar.codigo }}</label>
+        {% else %}
+          <span class="lugar ocupado" title="indisponível">{{ lugar.codigo }}</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+    <p class="legenda">Clique nos assentos para escolher. Os cinzas já estão vendidos ou
+       reservados por outro cliente. A reserva dura 10 minutos.</p>
+  </div>
+  <label style="margin-top:14px">Nome do cliente</label>
+  <input name="cliente_nome" required style="max-width:320px">
+  <button type="submit">Reservar os assentos</button>
+</form>
+{% endblock %}

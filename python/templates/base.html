@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}CineFlow{% endblock %}</title>
+<style>
+  :root { --borda:#d8d4ce; --texto:#222; --fundo:#faf9f7; --destaque:#8c2b22; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--texto);
+         background:var(--fundo); line-height:1.5; }
+  header { background:#1b1b1b; color:#fff; padding:12px 20px;
+           display:flex; flex-wrap:wrap; gap:16px; align-items:center; }
+  header a { color:#fff; text-decoration:none; }
+  header .marca { font-weight:bold; font-size:18px; margin-right:auto; }
+  main { max-width:900px; margin:0 auto; padding:20px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  h2 { font-size:17px; margin:24px 0 8px; }
+  p.ajuda { color:#666; margin:0 0 16px; }
+  table { border-collapse:collapse; width:100%; background:#fff; margin-bottom:16px; }
+  th, td { border:1px solid var(--borda); padding:7px 9px; text-align:left; font-size:14px; }
+  th { background:#e8e5e0; }
+  form.caixa { background:#fff; border:1px solid var(--borda); padding:14px; margin-bottom:20px; }
+  label { display:block; font-size:13px; margin:8px 0 2px; }
+  input, select { padding:6px; border:1px solid var(--borda); width:100%; font-size:14px; }
+  .linha { display:flex; gap:12px; flex-wrap:wrap; }
+  .linha > div { flex:1; min-width:140px; }
+  button { background:var(--destaque); color:#fff; border:0; padding:9px 16px;
+           font-size:14px; cursor:pointer; margin-top:12px; }
+  button.secundario { background:#555; }
+  .aviso { background:#fff6d8; border:1px solid #e0c86a; padding:10px; margin-bottom:16px; }
+  .mapa { background:#fff; border:1px solid var(--borda); padding:14px; }
+  .fileira { display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
+  .fileira b { width:18px; }
+  .lugar { border:1px solid #bbb; padding:5px 7px; font-size:12px; min-width:38px;
+           text-align:center; cursor:pointer; background:#eef6ee; }
+  .lugar.ocupado { background:#e8e8e8; color:#999; cursor:not-allowed; }
+  .lugar input { display:none; }
+  .lugar.escolhido { background:var(--destaque); color:#fff; border-color:var(--destaque); }
+  .tela { background:#333; color:#fff; text-align:center; padding:4px; margin-bottom:12px;
+          font-size:12px; letter-spacing:3px; }
+  .legenda { font-size:12px; color:#666; margin-top:10px; }
+  .codigo { font-family:"Courier New", monospace; font-weight:bold; }
+</style>
+</head>
+<body>
+<header>
+  <a class="marca" href="{{ url_for('programacao') }}">CineFlow</a>
+  <a href="{{ url_for('programacao') }}">Programação</a>
+  {% if perfil == 'gerente' %}
+    <a href="{{ url_for('filmes') }}">Filmes</a>
+    <a href="{{ url_for('salas') }}">Salas</a>
+    <a href="{{ url_for('sessoes') }}">Sessões</a>
+  {% endif %}
+  {% if usuario_nome %}
+    <span>{{ usuario_nome }}</span><a href="{{ url_for('sair') }}">Sair</a>
+  {% else %}
+    <a href="{{ url_for('login') }}">Entrar</a>
+  {% endif %}
+</header>
+<main>
+  {% for m in get_flashed_messages() %}<div class="aviso">{{ m }}</div>{% endfor %}
+  {% block conteudo %}{% endblock %}
+</main>
+</body>
+</html>

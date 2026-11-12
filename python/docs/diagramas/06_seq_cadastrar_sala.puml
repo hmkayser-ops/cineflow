@@ -1,0 +1,44 @@
+@startuml seq_cadastrar_sala
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Cadastrar sala e gerar a planta (RF03)
+
+actor "Gerente" as G
+participant "App" as A
+participant "Sala" as S
+participant "Repositorio" as R
+participant "Assento" as AS
+
+G -> A : POST /salas/nova (nome, fileiras, assentos por fileira)
+A -> A : confere os limites (1 a 26 fileiras, 1 a 30 assentos)
+
+alt dados fora dos limites
+  A --> G : "O número de fileiras precisa ficar entre 1 e 26."
+else dados válidos
+  A -> S : cria a Sala
+  A -> R : salvar_sala(sala)
+  R -> R : INSERT em salas
+  loop para cada fileira (A, B, C...)
+    loop para cada assento da fileira
+      R -> AS : cria o Assento (fileira + número)
+      R -> R : INSERT em assentos
+    end
+  end
+  R --> A : id da sala
+  A -> S : capacidade()
+  S --> A : fileiras × assentos por fileira
+  A --> G : "Sala cadastrada com 40 assentos."
+end
+@enduml

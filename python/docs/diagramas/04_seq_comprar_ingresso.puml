@@ -1,0 +1,77 @@
+@startuml seq_comprar_ingresso
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Comprar ingresso (RF06, RF07 e RF08)
+
+actor "Cliente" as C
+participant "App" as A
+participant "ServicoCompra" as S
+participant "Repositorio" as R
+participant "SessaoAssento" as SA
+participant "Compra" as CO
+participant "Ingresso" as I
+participant "Pagamento" as P
+
+C -> A : GET /sessao/{id}/comprar
+A -> R : mapa_da_sessao(id)
+R --> A : lista de SessaoAssento
+A -> SA : disponivel(agora) para cada lugar
+SA --> A : livre ou não
+A --> C : mapa com livres, reservados e vendidos
+
+C -> A : POST com os assentos e o nome
+A -> S : abrir(sessao, ids, cliente)
+S -> R : conectar() e BEGIN IMMEDIATE
+note right of S : a transação trava as linhas dos assentos,\nentão dois clientes não pegam o mesmo lugar
+S -> S : confere se todos seguem disponíveis
+
+alt algum assento foi tomado
+  S -> R : ROLLBACK
+  S --> A : ErroDeRegra com os assentos perdidos
+  A --> C : avisa e recarrega o mapa
+else todos disponíveis
+  S -> SA : status "bloqueado" e bloqueado_ate = agora + 10 min
+  S -> CO : cria a Compra com status "aberta"
+  S -> I : gerar_codigo() para cada assento
+  S -> R : COMMIT
+  S --> A : Compra
+  A --> C : resumo com o prazo da reserva
+end
+
+C -> A : marca os ingressos de meia-entrada
+A -> S : definir_meias(compra, ids)
+S -> S : meia = metade da inteira da sessão
+S -> CO : atualiza o total
+S --> A : total
+A --> C : total recalculado
+
+C -> A : confirma o pagamento
+A -> S : pagar(compra)
+S -> P : cria Pagamento com status "pendente"
+S -> P : autorizar()
+P -> P : gateway simulado decide
+
+alt pagamento aprovado
+  P --> S : verdadeiro e transacao_id
+  S -> SA : status "ocupado"
+  S -> CO : status "paga"
+  S --> A : Pagamento aprovado
+  A --> C : ingressos com os códigos
+else pagamento recusado
+  P --> S : falso
+  S --> A : Pagamento recusado
+  A --> C : motivo; assentos seguem reservados até o prazo
+end
+@enduml

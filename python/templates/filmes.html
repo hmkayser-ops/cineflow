@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block titulo %}Filmes · CineFlow{% endblock %}
+{% block conteudo %}
+<h1>Filmes</h1>
+<p class="ajuda">A duração entra no cálculo do término das sessões, e o período de licença limita as datas em que o filme pode ser programado.</p>
+<table>
+  <tr><th>Título</th><th>Gênero</th><th>Duração</th><th>Classificação</th>
+      <th>Licença</th><th>Situação</th><th></th></tr>
+  {% for f in filmes %}
+  <tr>
+    <td>{{ f.titulo }}</td><td>{{ f.genero }}</td><td>{{ f.duracao_min }} min</td>
+    <td>{{ f.classificacao }}</td>
+    <td>{{ f.licenca_inicio.strftime('%d/%m/%y') }} a {{ f.licenca_fim.strftime('%d/%m/%y') }}</td>
+    <td>{{ 'ativo' if f.ativo else 'inativo' }}</td>
+    <td><form method="post" action="{{ url_for('filme_excluir', filme_id=f.id) }}">
+        <button class="secundario" style="margin:0;padding:3px 8px;">Excluir</button></form></td>
+  </tr>
+  {% endfor %}
+</table>
+<h2>Cadastrar filme</h2>
+<form class="caixa" method="post" action="{{ url_for('filme_novo') }}">
+  <label>Título</label><input name="titulo" required>
+  <div class="linha">
+    <div><label>Gênero</label>
+      <select name="genero">
+        {% for g in ['Ação','Animação','Aventura','Comédia','Drama','Ficção científica','Suspense','Terror'] %}
+        <option>{{ g }}</option>{% endfor %}
+      </select></div>
+    <div><label>Duração (min)</label><input name="duracao_min" type="number" value="120" required></div>
+    <div><label>Classificação</label>
+      <select name="classificacao">
+        {% for c in ['L','10','12','14','16','18'] %}<option>{{ c }}</option>{% endfor %}
+      </select></div>
+  </div>
+  <div class="linha">
+    <div><label>Licença de</label><input name="licenca_inicio" type="date" required></div>
+    <div><label>até</label><input name="licenca_fim" type="date" required></div>
+  </div>
+  <button type="submit">Cadastrar</button>
+</form>
+{% endblock %}

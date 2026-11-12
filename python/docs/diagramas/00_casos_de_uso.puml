@@ -1,0 +1,89 @@
+@startuml casos_de_uso
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+}
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+  ArrowColor #444444
+  BackgroundColor<<Sprint1>> #FBE3E1
+  BorderColor<<Sprint1>> #B3261E
+  BackgroundColor<<Sprint2>> #E8EFF8
+  BorderColor<<Sprint2>> #24548F
+  BackgroundColor<<Sprint3>> #EAF4EC
+  BorderColor<<Sprint3>> #1F7A4D
+}
+skinparam rectangle {
+  BorderColor #333333
+  FontStyle bold
+}
+hide stereotype
+
+actor "Cliente" as Cliente
+actor "Atendente de\nBilheteria" as Atendente
+actor "Operador de\nPortaria" as Portaria
+actor "Gerente do\nCinema" as Gerente
+actor "Gateway de\nPagamento\n<<sistema externo>>" as Gateway
+
+rectangle "Sistema de Cinema – CineFlow" {
+  usecase "Autenticar usuário" as UC_AUT <<Sprint1>>
+  usecase "Gerenciar usuários" as UC_USU <<Sprint1>>
+  usecase "Cadastrar filme" as UC_FIL <<Sprint1>>
+  usecase "Cadastrar sala" as UC_SAL <<Sprint1>>
+  usecase "Definir planta\nde assentos" as UC_PLA <<Sprint1>>
+  usecase "Programar sessão" as UC_PRO <<Sprint1>>
+  usecase "Verificar disponibilidade\nda sala" as UC_DIS <<Sprint1>>
+  usecase "Cancelar sessão" as UC_CSE <<Sprint1>>
+
+  usecase "Consultar programação" as UC_CON <<Sprint2>>
+  usecase "Comprar ingresso" as UC_COM <<Sprint2>>
+  usecase "Selecionar assentos" as UC_SEL <<Sprint2>>
+  usecase "Efetuar pagamento" as UC_PAG <<Sprint2>>
+  usecase "Aplicar meia-entrada" as UC_MEI <<Sprint2>>
+
+  usecase "Cancelar compra" as UC_CAN <<Sprint3>>
+  usecase "Validar ingresso\nna entrada" as UC_VAL <<Sprint3>>
+  usecase "Emitir relatório\nde ocupação" as UC_REL <<Sprint3>>
+  usecase "Aplicar política\npromocional" as UC_PMO <<Sprint3>>
+}
+
+Atendente --> UC_AUT
+Portaria --> UC_AUT
+Gerente --> UC_AUT
+Gerente --> UC_USU
+Gerente --> UC_FIL
+Gerente --> UC_SAL
+Gerente --> UC_PRO
+Gerente --> UC_CSE
+Gerente --> UC_REL
+
+UC_SAL ..> UC_PLA : <<include>>
+UC_PRO ..> UC_DIS : <<include>>
+UC_PMO ..> UC_PRO : <<extend>>
+
+Cliente --> UC_CON
+Cliente --> UC_COM
+Cliente --> UC_CAN
+Atendente --> UC_CON
+Atendente --> UC_COM
+Atendente --> UC_CAN
+Portaria --> UC_VAL
+
+UC_COM ..> UC_SEL : <<include>>
+UC_COM ..> UC_PAG : <<include>>
+UC_MEI ..> UC_COM : <<extend>>
+UC_PAG --> Gateway
+
+legend right
+  |= Cor |= Entrega |
+  |<back:#FBE3E1>   </back>| Sprint 1 (29/10) |
+  |<back:#E8EFF8>   </back>| Sprint 2 (12/11) |
+  |<back:#EAF4EC>   </back>| Sprint 3 (03/12) |
+endlegend
+@enduml

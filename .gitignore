@@ -23,3 +23,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+python/.venv/
+python/__pycache__/
+python/cineflow.db
+python/testes/__pycache__/

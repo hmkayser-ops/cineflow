@@ -1,0 +1,37 @@
+@startuml seq_autenticar
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Autenticar usuário (RF01)
+
+actor "Funcionário" as F
+participant "App" as A
+participant "Repositorio" as R
+participant "Usuario" as U
+
+F -> A : POST /login (e-mail e senha)
+A -> R : buscar_usuario(email)
+R -> R : SELECT em usuarios
+R --> A : Usuario ou nada
+
+alt usuário existe e está ativo
+  A -> U : verificar_senha(senha)
+  U -> U : compara com o hash guardado
+  U --> A : verdadeiro
+  A -> A : guarda id, nome e perfil na sessão
+  A --> F : redireciona para a programação
+else e-mail ou senha errados
+  A --> F : "E-mail ou senha incorretos."
+end
+@enduml

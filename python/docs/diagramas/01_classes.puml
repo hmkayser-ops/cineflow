@@ -1,0 +1,167 @@
+@startuml classes
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 15
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  ArrowColor #444444
+  AttributeFontSize 14
+  FontStyle bold
+  BackgroundColor<<rotas>> #F2F2F0
+  BackgroundColor<<servico>> #EAF0F7
+  BackgroundColor<<repositorio>> #F2F2F0
+}
+hide circle
+title Diagrama de classes – CineFlow
+
+class App <<rotas>> {
+  + login()
+  + filmes()
+  + salas()
+  + sessoes()
+  + programacao()
+  + comprar(sessao_id)
+  + pagar(compra_id)
+}
+
+class ServicoSessao <<servico>> {
+  + calcular_fim(filme, inicio) : datetime
+  + ha_conflito(sala_id, inicio, fim) : bool
+  + programar(filme, sala, inicio, formato, preco) : Sessao
+}
+
+class ServicoCompra <<servico>> {
+  + abrir(sessao, assentos, cliente) : Compra
+  + definir_meias(compra, ids_meia) : float
+  + pagar(compra) : Pagamento
+  + liberar_expirados() : int
+}
+
+class Repositorio <<repositorio>> {
+  + buscar_usuario(email) : Usuario
+  + listar_filmes() : Filme[]
+  + listar_salas() : Sala[]
+  + listar_sessoes(data) : Sessao[]
+  + mapa_da_sessao(sessao_id) : SessaoAssento[]
+  + salvar(objeto) : int
+}
+
+class Usuario {
+  + id : int
+  + nome : str
+  + email : str
+  + senha_hash : str
+  + perfil : str
+  + ativo : bool
+  --
+  + verificar_senha(senha) : bool
+  + eh_gerente() : bool
+}
+
+class Filme {
+  + id : int
+  + titulo : str
+  + genero : str
+  + duracao_min : int
+  + classificacao : str
+  + licenca_inicio : date
+  + licenca_fim : date
+  + ativo : bool
+  --
+  + licenca_cobre(data) : bool
+}
+
+class Sala {
+  + id : int
+  + nome : str
+  + fileiras : int
+  + assentos_por_fileira : int
+  + ativa : bool
+  --
+  + capacidade() : int
+}
+
+class Assento {
+  + id : int
+  + sala_id : int
+  + fileira : str
+  + numero : int
+  --
+  + codigo() : str
+}
+
+class Sessao {
+  + id : int
+  + filme_id : int
+  + sala_id : int
+  + inicio : datetime
+  + fim : datetime
+  + formato : str
+  + preco_inteira : float
+  + status : str
+  --
+  + preco_meia() : float
+}
+
+class SessaoAssento {
+  + id : int
+  + sessao_id : int
+  + assento_id : int
+  + status : str
+  + bloqueado_ate : datetime
+  --
+  + disponivel(agora) : bool
+}
+
+class Compra {
+  + id : int
+  + sessao_id : int
+  + cliente_nome : str
+  + total : float
+  + status : str
+  + criada_em : datetime
+}
+
+class Ingresso {
+  + id : int
+  + compra_id : int
+  + sessao_assento_id : int
+  + tipo : str
+  + valor : float
+  + codigo : str
+  --
+  + {static} gerar_codigo() : str
+}
+
+class Pagamento {
+  + id : int
+  + compra_id : int
+  + valor : float
+  + status : str
+  + transacao_id : str
+  --
+  + autorizar() : bool
+}
+
+Sala "1" *-- "0..*" Assento : planta >
+Sessao "0..*" --o "1" Filme : exibe >
+Sessao "0..*" --o "1" Sala : ocupa >
+Sessao "1" *-- "0..*" SessaoAssento : mapa >
+SessaoAssento "0..*" --o "1" Assento : origem >
+Compra "0..*" --o "1" Sessao : para >
+Compra "1" *-- "1..*" Ingresso : itens >
+Compra "1" *-- "0..*" Pagamento : tentativas >
+Ingresso "1" --o "1" SessaoAssento : ocupa >
+
+App ..> ServicoSessao
+App ..> ServicoCompra
+App ..> Repositorio
+App ..> Usuario : autentica
+ServicoSessao ..> Repositorio
+ServicoCompra ..> Repositorio
+
+App -[hidden]down- Usuario
+Repositorio -[hidden]down- Filme
+
+@enduml

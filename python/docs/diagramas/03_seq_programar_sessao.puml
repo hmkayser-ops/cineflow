@@ -1,0 +1,50 @@
+@startuml seq_programar_sessao
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 13
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #333333
+  ActorBackgroundColor #FFFFFF
+  ActorBorderColor #333333
+  LifeLineBorderColor #999999
+  GroupBorderColor #888888
+  GroupBackgroundColor #F5F4F1
+  ArrowColor #333333
+}
+autonumber "<b>0."
+title Diagrama de sequência – Programar sessão (RF04)
+
+actor "Gerente" as G
+participant "App" as A
+participant "ServicoSessao" as S
+participant "Repositorio" as R
+participant "Filme" as F
+participant "Sessao" as SE
+
+G -> A : POST /sessoes/nova
+A -> R : buscar_filme(id) e buscar_sala(id)
+R --> A : Filme e Sala
+A -> S : programar(filme, sala, inicio, formato, preco)
+
+S -> F : licenca_cobre(data da sessão)
+F --> S : verdadeiro
+S -> S : calcular_fim(filme, inicio)\ninício + 15 trailers + duração + 20 limpeza
+S -> R : sessoes_da_sala(sala.id)
+R -> R : SELECT das sessões programadas
+R --> S : períodos já ocupados
+S -> S : ha_conflito(sala, inicio, fim)
+
+alt sala livre no período
+  S -> SE : cria a Sessao
+  S -> R : salvar_sessao(sessao)
+  R -> R : INSERT em sessoes
+  R -> R : INSERT em sessao_assentos\n(um por assento da planta da sala)
+  R --> S : id da sessão
+  S --> A : Sessao
+  A --> G : "Sessão programada: 19:30 às 21:50."
+else já existe sessão no horário
+  S --> A : ErroDeRegra
+  A --> G : "A sala já tem sessão nesse horário."
+end
+@enduml

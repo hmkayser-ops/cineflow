@@ -1,0 +1,73 @@
+@startuml atividades_comprar_ingresso
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 14
+skinparam activity {
+  BackgroundColor #FFFFFF
+  BorderColor #333333
+  ArrowColor #444444
+  DiamondBackgroundColor #F5F4F1
+  DiamondBorderColor #555555
+  FontSize 14
+}
+skinparam swimlane {
+  BorderColor #888888
+  TitleFontSize 15
+}
+title Diagrama de atividades – Comprar ingresso (RF06, RF07 e RF08)
+
+|Cliente|
+start
+:Escolhe a sessão na programação;
+
+|Sistema|
+:Monta o mapa de assentos da sessão;
+
+|Cliente|
+:Seleciona os assentos e informa o nome;
+
+|Sistema|
+:Abre a transação e trava
+as linhas dos assentos;
+if (todos continuam disponíveis?) then (não)
+  :Desfaz a transação e informa
+  quais assentos foram tomados;
+  detach
+else (sim)
+endif
+:Marca os assentos como bloqueados
+por 10 minutos;
+:Abre a Compra e gera um
+Ingresso por assento;
+
+|Cliente|
+:Marca quais ingressos
+são meia-entrada;
+
+|Sistema|
+:Recalcula o total
+(meia = metade da inteira);
+
+|Cliente|
+:Confirma o pagamento;
+
+|Sistema|
+:Registra o Pagamento como pendente;
+:Chama o gateway simulado;
+if (pagamento aprovado?) then (não)
+  :Marca o Pagamento como recusado
+  e mantém o bloqueio até expirar;
+  |Cliente|
+  :Vê o motivo e pode tentar de novo;
+  stop
+else (sim)
+endif
+|Sistema|
+:Marca o Pagamento como aprovado;
+:Marca os assentos como ocupados;
+:Fecha a Compra como paga;
+
+|Cliente|
+:Recebe os ingressos com os códigos;
+stop
+@enduml

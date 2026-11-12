@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block titulo %}Programação · CineFlow{% endblock %}
+{% block conteudo %}
+<h1>Programação de {{ dia.strftime('%d/%m/%Y') }}</h1>
+<p class="ajuda">
+  <a href="{{ url_for('programacao', dia=ontem) }}">&larr; dia anterior</a> ·
+  <a href="{{ url_for('programacao', dia=amanha) }}">próximo dia &rarr;</a>
+</p>
+{% if sessoes %}
+<table>
+  <tr><th>Horário</th><th>Filme</th><th>Sala</th><th>Formato</th>
+      <th>Inteira</th><th>Livres</th><th></th></tr>
+  {% for s in sessoes %}
+  <tr>
+    <td>{{ s.inicio.strftime('%H:%M') }} às {{ s.fim.strftime('%H:%M') }}</td>
+    <td>{{ s.filme_titulo }}</td><td>{{ s.sala_nome }}</td><td>{{ s.formato }}</td>
+    <td>R$ {{ '%.2f'|format(s.preco_inteira) }}</td>
+    <td>{{ livres[s.id] }}</td>
+    <td>{% if livres[s.id] %}<a href="{{ url_for('comprar', sessao_id=s.id) }}">Comprar</a>
+        {% else %}esgotada{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Nenhuma sessão programada para este dia.</p>
+{% endif %}
+{% endblock %}

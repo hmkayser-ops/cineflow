@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block titulo %}Sessões · CineFlow{% endblock %}
+{% block conteudo %}
+<h1>Sessões</h1>
+<p class="ajuda">O término é calculado como início + 15 min de trailers + duração do filme + 20 min de limpeza. O sistema recusa a sessão se a sala já estiver ocupada nesse período.</p>
+<table>
+  <tr><th>Início</th><th>Término</th><th>Filme</th><th>Sala</th>
+      <th>Formato</th><th>Inteira</th><th>Meia</th></tr>
+  {% for s in sessoes %}
+  <tr><td>{{ s.inicio.strftime('%d/%m %H:%M') }}</td><td>{{ s.fim.strftime('%H:%M') }}</td>
+      <td>{{ s.filme_titulo }}</td><td>{{ s.sala_nome }}</td><td>{{ s.formato }}</td>
+      <td>R$ {{ '%.2f'|format(s.preco_inteira) }}</td>
+      <td>R$ {{ '%.2f'|format(s.preco_meia()) }}</td></tr>
+  {% endfor %}
+</table>
+<h2>Programar sessão</h2>
+<form class="caixa" method="post" action="{{ url_for('sessao_nova') }}">
+  <div class="linha">
+    <div><label>Filme</label><select name="filme_id">
+      {% for f in filmes %}<option value="{{ f.id }}">{{ f.titulo }} ({{ f.duracao_min }} min)</option>{% endfor %}
+    </select></div>
+    <div><label>Sala</label><select name="sala_id">
+      {% for s in salas %}<option value="{{ s.id }}">{{ s.nome }}</option>{% endfor %}
+    </select></div>
+  </div>
+  <div class="linha">
+    <div><label>Início</label><input name="inicio" type="datetime-local" required></div>
+    <div><label>Formato</label><select name="formato"><option>2D</option><option>3D</option></select></div>
+    <div><label>Inteira (R$)</label><input name="preco_inteira" type="number" step="0.01" value="30.00" required></div>
+  </div>
+  <button type="submit">Programar</button>
+</form>
+{% endblock %}

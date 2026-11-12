@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block titulo %}Compra {{ compra.id }} · CineFlow{% endblock %}
+{% block conteudo %}
+<h1>Compra nº {{ compra.id }}</h1>
+<p class="ajuda">{{ sessao.filme_titulo }} · {{ sessao.sala_nome }} ·
+  {{ sessao.inicio.strftime('%d/%m às %H:%M') }} · cliente {{ compra.cliente_nome }}</p>
+
+{% if compra.status == 'aberta' %}
+  <div class="aviso">Assentos reservados até {{ expira.strftime('%H:%M:%S') }}.
+    Depois disso eles voltam para o mapa.</div>
+  <h2>Meia-entrada</h2>
+  <p class="ajuda">Marque os ingressos que têm direito ao benefício. A meia vale metade da inteira.</p>
+  <form method="post">
+    <input type="hidden" name="acao" value="meias">
+    <table>
+      <tr><th>Assento</th><th>Tipo</th><th>Valor</th><th>Meia?</th></tr>
+      {% for ing, assento in itens %}
+      <tr><td>{{ assento }}</td><td>{{ ing.tipo }}</td>
+          <td>R$ {{ '%.2f'|format(ing.valor) }}</td>
+          <td><input type="checkbox" name="meia" value="{{ ing.id }}"
+                     {% if ing.tipo == 'meia' %}checked{% endif %} style="width:auto"></td></tr>
+      {% endfor %}
+    </table>
+    <button class="secundario" type="submit">Recalcular total</button>
+  </form>
+
+  <h2>Pagamento</h2>
+  <p class="ajuda">Total a pagar: <b>R$ {{ '%.2f'|format(compra.total) }}</b>.
+     O gateway é simulado: valores terminados em ,99 são recusados de propósito,
+     para demonstrar o fluxo de recusa.</p>
+  <form method="post">
+    <input type="hidden" name="acao" value="pagar">
+    <button type="submit">Pagar R$ {{ '%.2f'|format(compra.total) }}</button>
+  </form>
+
+{% elif compra.status == 'paga' %}
+  <h2>Ingressos emitidos</h2>
+  <table>
+    <tr><th>Assento</th><th>Tipo</th><th>Valor</th><th>Código</th></tr>
+    {% for ing, assento in itens %}
+    <tr><td>{{ assento }}</td><td>{{ ing.tipo }}</td>
+        <td>R$ {{ '%.2f'|format(ing.valor) }}</td>
+        <td class="codigo">{{ ing.codigo }}</td></tr>
+    {% endfor %}
+  </table>
+  <p class="ajuda">Total pago: R$ {{ '%.2f'|format(compra.total) }}.
+     Apresente os códigos na entrada da sala.</p>
+{% else %}
+  <div class="aviso">Esta compra foi cancelada porque o prazo de reserva venceu.</div>
+{% endif %}
+<p><a href="{{ url_for('programacao') }}">Voltar para a programação</a></p>
+{% endblock %}
